@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuickReceive · working prototype</title>
+<meta name="description" content="QuickReceive receiving app prototype (fictional data) by Bhavna Sheth.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237A5A2B' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2M8 8v8M11 8v8M14 8v8M17 8v8'/%3E%3C/svg%3E">
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&amp;family=Barlow:wght@400;500;600;700&amp;family=Archivo:wght@500;600;700&amp;family=IBM+Plex+Mono:wght@500;600&amp;display=swap">
+<style>
+body{margin:0;background:#EFEBE4}
+a{color:#7A5A2B}a:hover{color:#5C4320}
+button,input{font-family:inherit}
+h1{font-family:'Archivo','Barlow',sans-serif;font-weight:600 !important;letter-spacing:-0.2px}
+h2{font-family:'Barlow Condensed','Barlow',sans-serif;letter-spacing:1.4px !important}
+@keyframes qrpulse{0%,100%{opacity:1}50%{opacity:0.55}}
+@media (prefers-reduced-motion: reduce){*{animation:none !important}}
+</style>
+
+</head><body>
+<template id="tpl">
+
+<div style="min-height: 100vh; box-sizing: border-box; padding: 24px; font-family: 'Barlow', system-ui, sans-serif; color: #1C1B19; background: #EFEBE4; display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start">
+
+<main style="flex: 999 1 820px; min-width: 0; background: #FFFDF8; border: 1px solid #D8D1C4; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column">
+
+<header style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 36px; background: #FFFDF8; color: #1C1B19; border-bottom: 2px solid #A8834A">
+<div style="display: flex; align-items: center; gap: 12px">
+<svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#7A5A2B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 8v8"></path><path d="M11 8v8"></path><path d="M15 8v8"></path><path d="M18 8v8"></path></svg>
+<span style="font-family: 'Archivo', 'Barlow', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase"><span style="color: #1C1B19">Quick</span><span style="color: #7A5A2B">Receive</span></span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 26px; font-size: 15px; color: #5E5A52">
+<span>Receiving dock 2 · Station B</span>
+<span>Tech: J. Rivera</span>
+<span>{{scannerStatus}}</span>
+</div>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 16px; padding: 24px 36px; background: #F4F0E8; border-bottom: 1px solid #D8D1C4">
+<label for="qr-scan" style="display: flex; align-items: center; gap: 8px; min-height: 48px; font-size: 16px; font-weight: 700">
+<svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1C1B19" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M7 12h10"></path></svg>
+Ready to scan</label>
+<div style="flex: 1 1 360px; min-width: 0; display: flex; flex-direction: column; position: relative">
+<div style="{{scanWrapStyle}}">
+<input id="qr-scan" value="{{scanValue}}" onChange="{{onScanChange}}" onKeyDown="{{onScanKey}}" onFocus="{{onScanFocus}}" onBlur="{{onScanBlur}}" autoFocus="{{ true }}" autoComplete="off" placeholder="Click here, then scan (or type a code and press Enter)" style="{{scanInputStyle}}">
+<sc-if value="{{hasScanValue}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{clearScan}}" aria-label="Clear" title="Clear" style="flex: 0 0 auto; min-width: 52px; border: none; border-left: 1px solid #D8D1C4; background: #F6EFE2; color: #5C4320; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg></button>
+</sc-if>
+<sc-if value="{{noScanValue}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{submitScan}}" aria-label="Submit code" title="Submit code" style="flex: 0 0 auto; min-width: 52px; border: none; border-left: 1px solid #D8D1C4; background: #F6EFE2; color: #5C4320; cursor: pointer; display: flex; align-items: center; justify-content: center"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 10l-5 5 5 5"></path><path d="M20 4v7a4 4 0 0 1-4 4H4"></path></svg></button>
+</sc-if>
+</div>
+<span role="status" style="{{scanMsgStyle}}">{{scanMsg}}</span>
+</div>
+</div>
+
+<sc-if value="{{offline}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="padding: 12px 24px; background: #F4EAD2; color: #6B430E; font-size: 16px; font-weight: 600; border-bottom: 1px solid #C9A25E">Offline · scans are saved on this laptop and will sync when Wi-Fi returns</div>
+</sc-if>
+
+<sc-if value="{{isBreak}}" hint-placeholder-val="{{ false }}">
+<section style="padding: 72px 48px; display: flex; flex-direction: column; align-items: flex-start; gap: 16px; max-width: 720px">
+<h1 style="margin: 0; font-size: 36px; font-weight: 700">On break</h1>
+<p style="margin: 0; font-size: 19px; color: #45423C">J. Rivera signed out at 10:44. PO 4500-1234 is saved with 3 of 5 lines done, so nothing is lost.</p>
+<p style="margin: 0; font-size: 17px; color: #5E5A52">This station stays locked until someone signs in.</p>
+<button type="button" onClick="{{next}}" style="margin-top: 8px; min-height: 56px; padding: 0 28px; border-radius: 4px; border: 2px solid #7A5A2B; background: #7A5A2B; color: #FFFDF8; font-size: 18px; font-weight: 700; cursor: pointer">Sign back in</button>
+</section>
+</sc-if>
+
+<sc-if value="{{isStart}}" hint-placeholder-val="{{ true }}">
+<section style="padding: 64px 48px; display: flex; flex-direction: column; gap: 28px; max-width: 760px">
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-size: 36px; font-weight: 700">Scan a packing slip or PO to start</h1>
+<p style="margin: 0; font-size: 18px; color: #5E5A52">Or pick a delivery that's expected today.</p>
+</div>
+<div style="display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #5E5A52; text-transform: uppercase; letter-spacing: 0.6px">Expected today</h2>
+<button type="button" onClick="{{openDelivery}}" style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; text-align: left; padding: 18px 20px; border: 2px solid #7A5A2B; border-radius: 4px; background: #F6EFE2; color: #1C1B19; font-size: 18px; cursor: pointer; min-height: 64px">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700">PO 4500-1234 · Northstar Precision</span><span style="font-size: 15px; color: #5E5A52">{{deliverySub}}</span></span>
+<span style="font-size: 15px; font-weight: 700; color: #7A5A2B">{{deliveryAction}}</span>
+</button>
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; align-items: center; padding: 18px 20px; border: 1px solid #D8D1C4; border-radius: 4px; font-size: 18px; min-height: 64px; box-sizing: border-box">
+<span style="display: flex; flex-direction: column; gap: 4px"><span style="font-weight: 700">PO 4500-1240 · Harbor Composites</span><span style="font-size: 15px; color: #5E5A52">41 items on 8 lines · 3 COCs needed</span></span>
+<span style="font-size: 15px; color: #5E5A52">Due 1:00 PM</span>
+</div>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{isReceiving}}" hint-placeholder-val="{{ false }}">
+<section style="display: flex; flex-direction: column">
+<div style="padding: 28px 36px; border-bottom: 1px solid #E7E1D6; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 12px">
+<div style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px">
+<button type="button" onClick="{{showDeliveries}}" style="margin-bottom: 12px; min-height: 32px; padding: 2px 0; border: none; background: none; color: #7A5A2B; font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">← All deliveries</button>
+<h1 style="margin: 0; font-size: 24px; font-weight: 700">PO 4500-1234 · Northstar Precision</h1>
+</div>
+<span style="font-size: 20px; font-weight: 700">{{progressText}}</span>
+</div>
+<div aria-hidden="true" style="height: 12px; border-radius: 6px; background: #E7E1D6; overflow: hidden"><div style="{{progressStyle}}"></div></div>
+<span style="font-size: 15px; color: #5E5A52">{{itemsText}} · progress saves after every scan</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 40px; padding: 36px 36px 44px">
+<div style="flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 600; color: #5E5A52; text-transform: uppercase; letter-spacing: 0.6px">Lines</h2>
+<sc-for list="{{lines}}" as="line" hint-placeholder-count="5">
+<div style="{{line.rowStyle}}">
+<span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 17px; font-weight: 600">{{line.label}}</span><span style="font-size: 14px; color: #5E5A52">{{line.meta}}</span></span>
+<span style="{{line.pillStyle}}">{{line.status}}</span>
+</div>
+</sc-for>
+</div>
+<div style="flex: 2 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 16px">
+
+<sc-if value="{{r.isChecking}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="border: 3px solid #7A5A2B; background: #F6EFE2; border-radius: 6px; padding: 36px 36px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 34px; font-weight: 700; color: #5C4320; animation: qrpulse 0.9s ease-in-out infinite">Checking…</span>
+<span style="font-size: 20px; color: #5C4320">Against PO 4500-1234 in ERP</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600">{{r.checkLine}}</span>
+<span style="font-size: 16px; color: #5E5A52">Result appears in under a second</span>
+</div>
+</sc-if>
+
+<sc-if value="{{r.isIdle}}" hint-placeholder-val="{{ true }}">
+<div style="border: 2px dashed #D8D1C4; border-radius: 6px; padding: 48px 24px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center">
+<svg aria-hidden="true" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#5E5A52" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><path d="M8 12h8"></path></svg>
+<span style="font-size: 28px; font-weight: 700">Scan the next part</span>
+<span style="font-size: 17px; color: #5E5A52">{{idleHint}}</span>
+</div>
+</sc-if>
+
+<sc-if value="{{r.isMatch}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="border: 3px solid #2F6B3F; background: #E5EEE2; border-radius: 6px; padding: 36px 36px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 36px; font-weight: 700; color: #234F2F">✓ Matched</span>
+<span style="font-size: 20px; color: #234F2F">{{r.sub}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600">{{r.value}}</span>
+<span style="font-size: 16px; color: #5E5A52">{{r.detail}}</span>
+</div>
+<button type="button" onClick="{{openFlagPick}}" style="align-self: flex-start; min-height: 32px; padding: 2px 4px; border: none; background: none; color: #7A5A2B; font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">Something wrong with this part? Flag it</button>
+<sc-if value="{{r.canUndo}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{undo}}" style="align-self: flex-start; min-height: 32px; padding: 2px 0; border: none; background: none; color: #7A5A2B; font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">↶ {{r.undoText}}</button></sc-if>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-top: 9px; padding-top: 14px; border-top: 1px solid #E7E1D6"><button type="button" onClick="{{scanNext}}" style="min-height: 32px; padding: 2px 0; border: none; background: none; color: #7A5A2B; font-size: 16px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">Scan next →</button><span style="font-size: 15px; color: #5E5A52">{{idleHint}}</span></div>
+</sc-if>
+
+<sc-if value="{{r.isFlagPick}}" hint-placeholder-val="{{ false }}">
+<div style="border: 3px solid #9A6414; background: #F4EAD2; border-radius: 6px; padding: 28px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 30px; font-weight: 700; color: #6B430E">⚑ Flag this part</span>
+<span style="font-size: 18px; color: #6B430E">{{r.pickValue}} · What's wrong?</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<button type="button" onClick="{{pickOther}}" style="min-height: 52px; text-align: left; padding: 0 18px; border-radius: 4px; border: 1px solid #A69E8F; background: #FFFDF8; color: #1C1B19; font-size: 17px; cursor: pointer">Not on this PO</button>
+<button type="button" onClick="{{pickLabel}}" style="min-height: 52px; text-align: left; padding: 0 18px; border-radius: 4px; border: 1px solid #A69E8F; background: #FFFDF8; color: #1C1B19; font-size: 17px; cursor: pointer">Label doesn't match part</button>
+<button type="button" onClick="{{pickOther}}" style="min-height: 52px; text-align: left; padding: 0 18px; border-radius: 4px; border: 1px solid #A69E8F; background: #FFFDF8; color: #1C1B19; font-size: 17px; cursor: pointer">Damaged</button>
+</div>
+<button type="button" onClick="{{cancelFlagPick}}" style="align-self: flex-start; min-height: 44px; padding: 0 18px; border-radius: 4px; border: 1px solid #A69E8F; background: #FFFDF8; color: #1C1B19; font-size: 16px; cursor: pointer">Cancel</button>
+</sc-if>
+
+<sc-if value="{{r.isMismatch}}" hint-placeholder-val="{{ false }}">
+<div role="alert" style="border: 3px solid #9B2C2C; background: #F5E1DD; border-radius: 6px; padding: 36px 36px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 36px; font-weight: 700; color: #6E1F1F">✕ {{r.title}}</span>
+<span style="font-size: 20px; color: #6E1F1F">{{r.sub}}</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 24px; font-weight: 600">Scanned {{r.value}}</span>
+<span style="font-size: 16px; color: #5E5A52">{{r.detail}}</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<button type="button" onClick="{{fixClick}}" style="flex: 1 1 180px; min-height: 56px; border-radius: 4px; border: 2px solid #45423C; background: #FFFDF8; color: #1C1B19; font-size: 18px; font-weight: 600; cursor: pointer">Fix it · rescan or type</button>
+<button type="button" onClick="{{flagClick}}" style="flex: 1 1 180px; min-height: 56px; border-radius: 4px; border: 2px solid #9A6414; background: #F4EAD2; color: #6B430E; font-size: 18px; font-weight: 700; cursor: pointer">⚑ Flag for lead</button>
+</div>
+</sc-if>
+
+<sc-if value="{{r.isFixMode}}" hint-placeholder-val="{{ false }}">
+<div style="border: 3px solid #45423C; background: #F4F0E8; border-radius: 6px; padding: 28px 28px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 30px; font-weight: 700">Fix it: scan the right label</span>
+<span style="font-size: 18px; color: #45423C">{{r.fixHint}}</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px; margin-top: 2px">
+<button type="button" onClick="{{tryAgain}}" style="flex: 1 1 160px; min-height: 52px; border-radius: 4px; border: 2px solid #7A5A2B; background: #7A5A2B; color: #FFFDF8; font-size: 17px; font-weight: 700; cursor: pointer">Try again</button>
+<button type="button" onClick="{{openManual}}" style="flex: 1 1 200px; min-height: 52px; border-radius: 4px; border: 2px solid #45423C; background: #FFFDF8; color: #1C1B19; font-size: 17px; font-weight: 600; cursor: pointer">Label won’t scan? Type it</button>
+<sc-if value="{{r.canFlag}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{flagClick}}" style="flex: 1 1 200px; min-height: 52px; border-radius: 4px; border: 2px solid #9A6414; background: #F4EAD2; color: #6B430E; font-size: 17px; font-weight: 700; cursor: pointer">⚑ Flag for lead instead</button>
+</sc-if>
+<button type="button" onClick="{{cancelFix}}" style="flex: 0 1 140px; min-height: 52px; border-radius: 4px; border: 1px solid #A69E8F; background: #FFFDF8; color: #1C1B19; font-size: 17px; cursor: pointer">Cancel</button>
+</div>
+</sc-if>
+
+<sc-if value="{{r.isTypeMode}}" hint-placeholder-val="{{ false }}">
+<div style="border: 3px solid #45423C; background: #F4F0E8; border-radius: 6px; padding: 28px 28px; display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 30px; font-weight: 700">Type the serial twice</span>
+<span style="font-size: 18px; color: #45423C">Read it off the label or the part. The app checks both entries match, then checks it against the PO.</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 2px">
+<div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px"><label for="qr-type-1" style="font-size: 15px; font-weight: 600; color: #45423C">Serial</label><input id="qr-type-1" value="{{typed1}}" onChange="{{onTyped1}}" autoComplete="off" placeholder="e.g. SN-0413" style="{{typeStyle1}}"></div>
+<div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px"><label for="qr-type-2" style="font-size: 15px; font-weight: 600; color: #45423C">Type it again</label><input id="qr-type-2" value="{{typed2}}" onChange="{{onTyped2}}" autoComplete="off" style="{{typeStyle2}}"></div>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<button type="button" onClick="{{saveTyped}}" style="flex: 1 1 200px; min-height: 52px; border-radius: 4px; border: 2px solid #7A5A2B; background: #7A5A2B; color: #FFFDF8; font-size: 17px; font-weight: 700; cursor: pointer">Save and check</button>
+<button type="button" onClick="{{cancelType}}" style="flex: 0 1 140px; min-height: 52px; border-radius: 4px; border: 1px solid #A69E8F; background: #FFFDF8; color: #1C1B19; font-size: 17px; cursor: pointer">Back</button>
+</div>
+</sc-if>
+
+<sc-if value="{{r.isManual}}" hint-placeholder-val="{{ false }}">
+<div style="border: 3px solid #45423C; background: #F4F0E8; border-radius: 6px; padding: 24px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 30px; font-weight: 700">Label won't scan</span>
+<span style="font-size: 18px; color: #45423C">Type the serial twice. The app checks both entries match, then re-checks it against the PO.</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px">
+<div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px"><label for="qr-serial-1" style="font-size: 15px; font-weight: 600; color: #45423C">Serial</label><input id="qr-serial-1" value="{{typed1}}" readonly style="{{typeStyle1}}"></div>
+<div style="flex: 1 1 200px; display: flex; flex-direction: column; gap: 6px"><label for="qr-serial-2" style="font-size: 15px; font-weight: 600; color: #45423C">Type it again</label><input id="qr-serial-2" value="{{typed2}}" readonly style="{{typeStyle2}}"></div>
+</div>
+<span style="{{matchNoteStyle}}">{{matchNote}}</span>
+<button type="button" onClick="{{next}}" style="min-height: 56px; border-radius: 4px; border: 2px solid #7A5A2B; background: #EFE4CF; color: #5C4320; font-size: 18px; font-weight: 700; cursor: pointer">Save and check</button>
+</sc-if>
+
+<sc-if value="{{r.isFlag}}" hint-placeholder-val="{{ false }}">
+<div role="status" style="border: 3px solid #9A6414; background: #F4EAD2; border-radius: 6px; padding: 36px 36px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 34px; font-weight: 700; color: #6B430E">⚑ Flagged for lead</span>
+<span style="font-size: 20px; color: #6B430E">{{r.sub}}</span>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px">
+<span style="{{r.chipNotOnPo}}">Not on this PO</span>
+<span style="{{r.chipLabel}}">Label doesn't match part</span>
+<span style="{{r.chipDamaged}}">Damaged</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px; padding: 0 4px">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600">{{r.value}}</span>
+<span style="font-size: 16px; color: #5E5A52">{{r.detail}}</span>
+</div>
+<sc-if value="{{r.photo}}" hint-placeholder-val="{{ false }}">
+<div style="display: flex; align-items: center; gap: 14px; padding: 12px; border: 1px solid #D8D1C4; border-radius: 4px">
+<div aria-hidden="true" style="width: 96px; height: 64px; border-radius: 6px; background: #DCD5C8; display: flex; align-items: center; justify-content: center; font-size: 13px; color: #45423C">Photo</div>
+<span style="font-size: 16px">Photo attached: the label and the serial marked on the sensor, for QA</span>
+</div>
+</sc-if>
+<span style="font-size: 17px; font-weight: 700; color: #234F2F">✓ Sent to the receiving lead</span>
+<span style="font-size: 17px; font-weight: 600">Part on hold · the rest of the delivery continues</span>
+<sc-if value="{{r.canUndo}}" hint-placeholder-val="{{ false }}"><button type="button" onClick="{{undo}}" style="align-self: flex-start; min-height: 32px; padding: 2px 0; border: none; background: none; color: #7A5A2B; font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">↶ {{r.undoText}}</button></sc-if>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-top: 9px; padding-top: 14px; border-top: 1px solid #E7E1D6"><button type="button" onClick="{{scanNext}}" style="min-height: 32px; padding: 2px 0; border: none; background: none; color: #7A5A2B; font-size: 16px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">Scan next →</button><span style="font-size: 15px; color: #5E5A52">{{idleHint}}</span></div>
+</sc-if>
+
+<sc-if value="{{r.isQty}}" hint-placeholder-val="{{ false }}">
+<div style="border: 3px solid #45423C; background: #F4F0E8; border-radius: 6px; padding: 24px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 30px; font-weight: 700">Count the seal rings</span>
+<span style="font-size: 18px; color: #45423C">Lot LOT-5520 · the PO expects 6</span>
+</div>
+<div style="display: flex; align-items: baseline; gap: 12px"><span style="font-size: 56px; font-weight: 700">5</span><span style="font-size: 22px; color: #5E5A52">of 6 counted</span></div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<span style="padding: 10px 16px; border-radius: 999px; border: 2px solid #9A6414; background: #F4EAD2; color: #6B430E; font-size: 16px; font-weight: 700">Short shipped</span>
+<span style="padding: 10px 16px; border-radius: 999px; border: 1px solid #A69E8F; font-size: 16px; color: #45423C">Over</span>
+<span style="padding: 10px 16px; border-radius: 999px; border: 1px solid #A69E8F; font-size: 16px; color: #45423C">Damaged</span>
+</div>
+<button type="button" onClick="{{next}}" style="min-height: 56px; border-radius: 4px; border: 2px solid #7A5A2B; background: #EFE4CF; color: #5C4320; font-size: 18px; font-weight: 700; cursor: pointer">Record 5 of 6 as short</button>
+<div style="display: flex; flex-wrap: wrap; align-items: baseline; gap: 12px; margin-top: 9px; padding-top: 14px; border-top: 1px solid #E7E1D6"><button type="button" onClick="{{scanNext}}" style="min-height: 32px; padding: 2px 0; border: none; background: none; color: #7A5A2B; font-size: 16px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">Scan next →</button><span style="font-size: 15px; color: #5E5A52">{{idleHint}}</span></div>
+</sc-if>
+
+<sc-if value="{{r.isResume}}" hint-placeholder-val="{{ false }}">
+<div style="border: 3px solid #7A5A2B; background: #F6EFE2; border-radius: 6px; padding: 32px 24px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 32px; font-weight: 700; color: #5C4320">Welcome back</span>
+<span style="font-size: 19px; color: #5C4320">Nothing was lost. You were on PO 4500-1234 with 3 of 5 lines done. Last scan: LOT-7781 at 10:42.</span>
+<button type="button" onClick="{{next}}" style="align-self: flex-start; min-height: 56px; padding: 0 28px; border-radius: 4px; border: 2px solid #7A5A2B; background: #7A5A2B; color: #FFFDF8; font-size: 18px; font-weight: 700; cursor: pointer">Resume at line 4</button>
+</div>
+</sc-if>
+
+<sc-if value="{{allDone}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{next}}" style="min-height: 60px; border-radius: 4px; border: 2px solid #7A5A2B; background: #7A5A2B; color: #FFFDF8; font-size: 19px; font-weight: 700; cursor: pointer">All lines handled · attach COCs</button>
+</sc-if>
+<sc-if value="{{linesView}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{backToReview}}" style="min-height: 60px; border-radius: 4px; border: 2px solid #7A5A2B; background: #7A5A2B; color: #FFFDF8; font-size: 19px; font-weight: 700; cursor: pointer">Back to review</button>
+</sc-if>
+</div>
+</div>
+</section>
+</sc-if>
+
+<sc-if value="{{isCoc}}" hint-placeholder-val="{{ false }}">
+<section style="padding: 36px 36px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<button type="button" onClick="{{showDeliveries}}" style="align-self: flex-start; margin-bottom: 12px; min-height: 32px; padding: 2px 0; border: none; background: none; color: #7A5A2B; font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">← All deliveries</button>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Attach COCs · 2 needed</h1>
+<p style="margin: 0; font-size: 17px; color: #5E5A52">AI reads each COC and suggests which lines it covers. A person confirms anything it isn't sure about.</p>
+<p style="margin: 0; font-size: 15px; color: #5E5A52">Lines 1 and 4 need a COC.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px">
+<div style="border: 2px solid #2F6B3F; border-radius: 6px; padding: 20px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 14px; font-weight: 600; color: #5E5A52; text-transform: uppercase; letter-spacing: 0.6px">Supplier email · PDF</span>
+<span style="font-size: 20px; font-weight: 700">COC for actuator brackets</span>
+<sc-if value="{{cocReading}}" hint-placeholder-val="{{ false }}"><span style="font-size: 20px; font-weight: 700; color: #5C4320; animation: qrpulse 0.9s ease-in-out infinite">Reading COC…</span></sc-if>
+<sc-if value="{{cocRead}}" hint-placeholder-val="{{ true }}">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 16px">Part 12-3456 · Qty 4 · SN-0451 to SN-0454</span>
+<span style="font-size: 16px">Matches line 1 · high confidence</span>
+<span style="font-size: 18px; font-weight: 700; color: #234F2F">✓ Attached automatically</span>
+</sc-if>
+</div>
+<div style="{{cocBStyle}}">
+<span style="font-size: 14px; font-weight: 600; color: #5E5A52; text-transform: uppercase; letter-spacing: 0.6px">Paper COC · uploaded</span>
+<span style="font-size: 20px; font-weight: 700">COC for seal rings</span>
+<sc-if value="{{cocReading}}" hint-placeholder-val="{{ false }}"><span style="font-size: 20px; font-weight: 700; color: #5C4320; animation: qrpulse 0.9s ease-in-out infinite">Reading COC…</span></sc-if>
+<sc-if value="{{cocRead}}" hint-placeholder-val="{{ true }}">
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 16px">Part 44-2200 · Lot LOT-5520 · Qty 6</span>
+<span style="font-size: 16px">Suggested: line 4 · needs a check</span>
+<span style="font-size: 16px; font-weight: 600; color: #6B430E">The COC lists 6, but you received 5 (1 short).</span>
+<sc-if value="{{cocPending}}" hint-placeholder-val="{{ true }}">
+<button type="button" onClick="{{next}}" style="min-height: 52px; border-radius: 4px; border: 2px solid #7A5A2B; background: #EFE4CF; color: #5C4320; font-size: 17px; font-weight: 700; cursor: pointer">Confirm it's line 4</button>
+</sc-if>
+<sc-if value="{{cocDone}}" hint-placeholder-val="{{ false }}">
+<span style="font-size: 18px; font-weight: 700; color: #234F2F">✓ Attached · confirmed by J. Rivera</span>
+</sc-if>
+</sc-if>
+</div>
+</div>
+<sc-if value="{{cocDone}}" hint-placeholder-val="{{ false }}">
+<button type="button" onClick="{{next}}" style="align-self: flex-start; min-height: 60px; padding: 0 28px; border-radius: 4px; border: 2px solid #7A5A2B; background: #7A5A2B; color: #FFFDF8; font-size: 19px; font-weight: 700; cursor: pointer">Go to review</button>
+</sc-if>
+</section>
+</sc-if>
+
+<sc-if value="{{isReview}}" hint-placeholder-val="{{ false }}">
+<section style="padding: 36px 36px; display: flex; flex-direction: column; gap: 18px; max-width: 720px">
+<div style="display: flex; gap: 24px; margin-bottom: 12px">
+<button type="button" onClick="{{showDeliveries}}" style="min-height: 32px; padding: 2px 0; border: none; background: none; color: #7A5A2B; font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">← All deliveries</button>
+<button type="button" onClick="{{showLines}}" style="min-height: 32px; padding: 2px 0; border: none; background: none; color: #7A5A2B; font-size: 15px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; cursor: pointer">← Back to lines</button>
+</div>
+<h1 style="margin: 0; font-size: 30px; font-weight: 700">Ready to confirm · PO 4500-1234</h1>
+<div style="display: flex; flex-direction: column; border: 1px solid #D8D1C4; border-radius: 6px; overflow: hidden">
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 16px 20px; font-size: 19px; border-bottom: 1px solid #E7E1D6"><span>Received</span><span style="font-weight: 700">22 of 23 items</span></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 16px 20px; font-size: 19px; border-bottom: 1px solid #E7E1D6"><span>Short</span><span style="font-weight: 700">1 · seal ring</span></div>
+<div style="display: flex; flex-direction: column; gap: 6px; padding: 16px 20px; border-bottom: 1px solid #E7E1D6"><div style="display: flex; justify-content: space-between; gap: 12px; font-size: 19px"><span>Flagged for lead</span><span style="font-weight: 700">{{flagCountText}}</span></div><sc-for list="{{reviewFlags}}" as="f" hint-placeholder-count="2"><span style="font-size: 15px; color: #5E5A52">{{f.text}}</span></sc-for></div>
+<div style="display: flex; justify-content: space-between; gap: 12px; padding: 16px 20px; font-size: 19px"><span>COCs attached</span><span style="font-weight: 700">2 of 2</span></div>
+</div>
+<button type="button" onClick="{{next}}" style="min-height: 60px; border-radius: 4px; border: 2px solid #7A5A2B; background: #7A5A2B; color: #FFFDF8; font-size: 19px; font-weight: 700; cursor: pointer">Confirm receipt</button>
+<span style="font-size: 16px; color: #5E5A52; text-align: center">or scan the CONFIRM barcode</span>
+</section>
+</sc-if>
+
+<sc-if value="{{isPosted}}" hint-placeholder-val="{{ false }}">
+<section style="padding: 56px 24px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center">
+<span style="font-size: 44px; font-weight: 700; color: #234F2F">✓ Posted to ERP</span>
+<span style="font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 600">Receipt RCV-88213</span>
+<span style="font-size: 18px; color: #45423C">{{postedSummary}}</span>
+<button type="button" onClick="{{showPostedList}}" style="margin-top: 12px; min-height: 56px; padding: 0 28px; border-radius: 4px; border: 2px solid #7A5A2B; background: #FFFDF8; color: #5C4320; font-size: 18px; font-weight: 700; cursor: pointer">Back to deliveries</button>
+</section>
+</sc-if>
+</main>
+
+<aside aria-label="Demo controls" style="flex: 1 1 300px; min-width: 0; background: #FFFDF8; border: 1px solid #D8D1C4; border-radius: 6px; padding: 18px; display: flex; flex-direction: column; gap: 12px; box-sizing: border-box">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-size: 18px; font-weight: 700">Demo controls</h2>
+<p style="margin: 0; font-size: 14px; color: #5E5A52">Scan the barcodes on the printed sheet into the "Ready to scan" box, or click Next. Click any step to go to the screen where it happens next.</p>
+<p style="margin: 0; font-size: 13px; font-style: italic; color: #6B6458">Demo runs in a set order. The real app takes scans in any order.</p>
+</div>
+<div style="display: flex; gap: 8px">
+<button type="button" onClick="{{next}}" style="flex: 1 1 auto; min-height: 48px; border-radius: 4px; border: 2px solid #7A5A2B; background: #7A5A2B; color: #FFFDF8; font-size: 16px; font-weight: 700; cursor: pointer">{{nextLabel}}</button>
+<button type="button" onClick="{{reset}}" style="min-height: 48px; padding: 0 14px; border-radius: 4px; border: 1px solid #A69E8F; background: #FFFDF8; color: #1C1B19; font-size: 15px; cursor: pointer">Reset</button>
+</div>
+<button type="button" onClick="{{toggleOffline}}" aria-pressed="{{offline}}" style="min-height: 44px; border-radius: 4px; border: 1px solid #A69E8F; background: #FAF7F1; color: #1C1B19; font-size: 15px; cursor: pointer">{{offlineLabel}}</button>
+<ol style="margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{steps}}" as="step" hint-placeholder-count="8">
+<li><button type="button" onClick="{{step.jump}}" style="{{step.style}}"><span style="font-size: 14px; font-weight: 600">{{step.label}}</span><span style="font-size: 13px; color: #5E5A52">{{step.sub}}</span><span style="font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #45423C">Scan: {{step.code}}</span></button></li>
+</sc-for>
+</ol>
+</aside>
+
+</div>
+
+</template><div id="root"></div>
+<script>(function(global,factory){typeof exports==="object"&&typeof module!=="undefined"?module.exports=factory():typeof define==="function"&&define.amd?define(factory):(global=global||self,global.morphdom=factory())})(this,function(){"use strict";var DOCUMENT_FRAGMENT_NODE=11;function morphAttrs(fromNode,toNode){var toNodeAttrs=toNode.attributes;var attr;var attrName;var attrNamespaceURI;var attrValue;var fromValue;if(toNode.nodeType===DOCUMENT_FRAGMENT_NODE||fromNode.nodeType===DOCUMENT_FRAGMENT_NODE){return}for(var i=toNodeAttrs.length-1;i>=0;i--){attr=toNodeAttrs[i];attrName=attr.name;attrNamespaceURI=attr.namespaceURI;attrValue=attr.value;if(attrNamespaceURI){attrName=attr.localName||attrName;fromValue=fromNode.getAttributeNS(attrNamespaceURI,attrName);if(fromValue!==attrValue){if(attr.prefix==="xmlns"){attrName=attr.name}fromNode.setAttributeNS(attrNamespaceURI,attrName,attrValue)}}else{fromValue=fromNode.getAttribute(attrName);if(fromValue!==attrValue){fromNode.setAttribute(attrName,attrValue)}}}var fromNodeAttrs=fromNode.attributes;for(var d=fromNodeAttrs.length-1;d>=0;d--){attr=fromNodeAttrs[d];attrName=attr.name;attrNamespaceURI=attr.namespaceURI;if(attrNamespaceURI){attrName=attr.localName||attrName;if(!toNode.hasAttributeNS(attrNamespaceURI,attrName)){fromNode.removeAttributeNS(attrNamespaceURI,attrName)}}else{if(!toNode.hasAttribute(attrName)){fromNode.removeAttribute(attrName)}}}}var range;var NS_XHTML="http://www.w3.org/1999/xhtml";var doc=typeof document==="undefined"?undefined:document;var HAS_TEMPLATE_SUPPORT=!!doc&&"content"in doc.createElement("template");var HAS_RANGE_SUPPORT=!!doc&&doc.createRange&&"createContextualFragment"in doc.createRange();function createFragmentFromTemplate(str){var template=doc.createElement("template");template.innerHTML=str;return template.content.childNodes[0]}function createFragmentFromRange(str){if(!range){range=doc.createRange();range.selectNode(doc.body)}var fragment=range.createContextualFragment(str);return fragment.childNodes[0]}function createFragmentFromWrap(str){var fragment=doc.createElement("body");fragment.innerHTML=str;return fragment.childNodes[0]}function toElement(str){str=str.trim();if(HAS_TEMPLATE_SUPPORT){return createFragmentFromTemplate(str)}else if(HAS_RANGE_SUPPORT){return createFragmentFromRange(str)}return createFragmentFromWrap(str)}function compareNodeNames(fromEl,toEl){var fromNodeName=fromEl.nodeName;var toNodeName=toEl.nodeName;var fromCodeStart,toCodeStart;if(fromNodeName===toNodeName){return true}fromCodeStart=fromNodeName.charCodeAt(0);toCodeStart=toNodeName.charCodeAt(0);if(fromCodeStart<=90&&toCodeStart>=97){return fromNodeName===toNodeName.toUpperCase()}else if(toCodeStart<=90&&fromCodeStart>=97){return toNodeName===fromNodeName.toUpperCase()}else{return false}}function createElementNS(name,namespaceURI){return!namespaceURI||namespaceURI===NS_XHTML?doc.createElement(name):doc.createElementNS(namespaceURI,name)}function moveChildren(fromEl,toEl){var curChild=fromEl.firstChild;while(curChild){var nextChild=curChild.nextSibling;toEl.appendChild(curChild);curChild=nextChild}return toEl}function syncBooleanAttrProp(fromEl,toEl,name){if(fromEl[name]!==toEl[name]){fromEl[name]=toEl[name];if(fromEl[name]){fromEl.setAttribute(name,"")}else{fromEl.removeAttribute(name)}}}var specialElHandlers={OPTION:function(fromEl,toEl){var parentNode=fromEl.parentNode;if(parentNode){var parentName=parentNode.nodeName.toUpperCase();if(parentName==="OPTGROUP"){parentNode=parentNode.parentNode;parentName=parentNode&&parentNode.nodeName.toUpperCase()}if(parentName==="SELECT"&&!parentNode.hasAttribute("multiple")){if(fromEl.hasAttribute("selected")&&!toEl.selected){fromEl.setAttribute("selected","selected");fromEl.removeAttribute("selected")}parentNode.selectedIndex=-1}}syncBooleanAttrProp(fromEl,toEl,"selected")},INPUT:function(fromEl,toEl){syncBooleanAttrProp(fromEl,toEl,"checked");syncBooleanAttrProp(fromEl,toEl,"disabled");if(fromEl.value!==toEl.value){fromEl.value=toEl.value}if(!toEl.hasAttribute("value")){fromEl.removeAttribute("value")}},TEXTAREA:function(fromEl,toEl){var newValue=toEl.value;if(fromEl.value!==newValue){fromEl.value=newValue}var firstChild=fromEl.firstChild;if(firstChild){var oldValue=firstChild.nodeValue;if(oldValue==newValue||!newValue&&oldValue==fromEl.placeholder){return}firstChild.nodeValue=newValue}},SELECT:function(fromEl,toEl){if(!toEl.hasAttribute("multiple")){var selectedIndex=-1;var i=0;var curChild=fromEl.firstChild;var optgroup;var nodeName;while(curChild){nodeName=curChild.nodeName&&curChild.nodeName.toUpperCase();if(nodeName==="OPTGROUP"){optgroup=curChild;curChild=optgroup.firstChild}else{if(nodeName==="OPTION"){if(curChild.hasAttribute("selected")){selectedIndex=i;break}i++}curChild=curChild.nextSibling;if(!curChild&&optgroup){curChild=optgroup.nextSibling;optgroup=null}}}fromEl.selectedIndex=selectedIndex}}};var ELEMENT_NODE=1;var DOCUMENT_FRAGMENT_NODE$1=11;var TEXT_NODE=3;var COMMENT_NODE=8;function noop(){}function defaultGetNodeKey(node){if(node){return node.getAttribute&&node.getAttribute("id")||node.id}}function morphdomFactory(morphAttrs){return function morphdom(fromNode,toNode,options){if(!options){options={}}if(typeof toNode==="string"){if(fromNode.nodeName==="#document"||fromNode.nodeName==="HTML"||fromNode.nodeName==="BODY"){var toNodeHtml=toNode;toNode=doc.createElement("html");toNode.innerHTML=toNodeHtml}else{toNode=toElement(toNode)}}else if(toNode.nodeType===DOCUMENT_FRAGMENT_NODE$1){toNode=toNode.firstElementChild}var getNodeKey=options.getNodeKey||defaultGetNodeKey;var onBeforeNodeAdded=options.onBeforeNodeAdded||noop;var onNodeAdded=options.onNodeAdded||noop;var onBeforeElUpdated=options.onBeforeElUpdated||noop;var onElUpdated=options.onElUpdated||noop;var onBeforeNodeDiscarded=options.onBeforeNodeDiscarded||noop;var onNodeDiscarded=options.onNodeDiscarded||noop;var onBeforeElChildrenUpdated=options.onBeforeElChildrenUpdated||noop;var skipFromChildren=options.skipFromChildren||noop;var addChild=options.addChild||function(parent,child){return parent.appendChild(child)};var childrenOnly=options.childrenOnly===true;var fromNodesLookup=Object.create(null);var keyedRemovalList=[];function addKeyedRemoval(key){keyedRemovalList.push(key)}function walkDiscardedChildNodes(node,skipKeyedNodes){if(node.nodeType===ELEMENT_NODE){var curChild=node.firstChild;while(curChild){var key=undefined;if(skipKeyedNodes&&(key=getNodeKey(curChild))){addKeyedRemoval(key)}else{onNodeDiscarded(curChild);if(curChild.firstChild){walkDiscardedChildNodes(curChild,skipKeyedNodes)}}curChild=curChild.nextSibling}}}function removeNode(node,parentNode,skipKeyedNodes){if(onBeforeNodeDiscarded(node)===false){return}if(parentNode){parentNode.removeChild(node)}onNodeDiscarded(node);walkDiscardedChildNodes(node,skipKeyedNodes)}function indexTree(node){if(node.nodeType===ELEMENT_NODE||node.nodeType===DOCUMENT_FRAGMENT_NODE$1){var curChild=node.firstChild;while(curChild){var key=getNodeKey(curChild);if(key){fromNodesLookup[key]=curChild}indexTree(curChild);curChild=curChild.nextSibling}}}indexTree(fromNode);function handleNodeAdded(el){onNodeAdded(el);var curChild=el.firstChild;while(curChild){var nextSibling=curChild.nextSibling;var key=getNodeKey(curChild);if(key){var unmatchedFromEl=fromNodesLookup[key];if(unmatchedFromEl&&compareNodeNames(curChild,unmatchedFromEl)){curChild.parentNode.replaceChild(unmatchedFromEl,curChild);morphEl(unmatchedFromEl,curChild)}else{handleNodeAdded(curChild)}}else{handleNodeAdded(curChild)}curChild=nextSibling}}function cleanupFromEl(fromEl,curFromNodeChild,curFromNodeKey){while(curFromNodeChild){var fromNextSibling=curFromNodeChild.nextSibling;if(curFromNodeKey=getNodeKey(curFromNodeChild)){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=fromNextSibling}}function morphEl(fromEl,toEl,childrenOnly){var toElKey=getNodeKey(toEl);if(toElKey){delete fromNodesLookup[toElKey]}if(!childrenOnly){var beforeUpdateResult=onBeforeElUpdated(fromEl,toEl);if(beforeUpdateResult===false){return}else if(beforeUpdateResult instanceof HTMLElement){fromEl=beforeUpdateResult;indexTree(fromEl)}morphAttrs(fromEl,toEl);onElUpdated(fromEl);if(onBeforeElChildrenUpdated(fromEl,toEl)===false){return}}if(fromEl.nodeName!=="TEXTAREA"){morphChildren(fromEl,toEl)}else{specialElHandlers.TEXTAREA(fromEl,toEl)}}function morphChildren(fromEl,toEl){var skipFrom=skipFromChildren(fromEl,toEl);var curToNodeChild=toEl.firstChild;var curFromNodeChild=fromEl.firstChild;var curToNodeKey;var curFromNodeKey;var fromNextSibling;var toNextSibling;var matchingFromEl;outer:while(curToNodeChild){toNextSibling=curToNodeChild.nextSibling;curToNodeKey=getNodeKey(curToNodeChild);while(!skipFrom&&curFromNodeChild){fromNextSibling=curFromNodeChild.nextSibling;if(curToNodeChild.isSameNode&&curToNodeChild.isSameNode(curFromNodeChild)){curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling;continue outer}curFromNodeKey=getNodeKey(curFromNodeChild);var curFromNodeType=curFromNodeChild.nodeType;var isCompatible=undefined;if(curFromNodeType===curToNodeChild.nodeType){if(curFromNodeType===ELEMENT_NODE){if(curToNodeKey){if(curToNodeKey!==curFromNodeKey){if(matchingFromEl=fromNodesLookup[curToNodeKey]){if(fromNextSibling===matchingFromEl){isCompatible=false}else{fromEl.insertBefore(matchingFromEl,curFromNodeChild);if(curFromNodeKey){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=matchingFromEl;curFromNodeKey=getNodeKey(curFromNodeChild)}}else{isCompatible=false}}}else if(curFromNodeKey){isCompatible=false}isCompatible=isCompatible!==false&&compareNodeNames(curFromNodeChild,curToNodeChild);if(isCompatible){morphEl(curFromNodeChild,curToNodeChild)}}else if(curFromNodeType===TEXT_NODE||curFromNodeType==COMMENT_NODE){isCompatible=true;if(curFromNodeChild.nodeValue!==curToNodeChild.nodeValue){curFromNodeChild.nodeValue=curToNodeChild.nodeValue}}}if(isCompatible){curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling;continue outer}if(curFromNodeKey){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=fromNextSibling}if(curToNodeKey&&(matchingFromEl=fromNodesLookup[curToNodeKey])&&compareNodeNames(matchingFromEl,curToNodeChild)){if(!skipFrom){addChild(fromEl,matchingFromEl)}morphEl(matchingFromEl,curToNodeChild)}else{var onBeforeNodeAddedResult=onBeforeNodeAdded(curToNodeChild);if(onBeforeNodeAddedResult!==false){if(onBeforeNodeAddedResult){curToNodeChild=onBeforeNodeAddedResult}if(curToNodeChild.actualize){curToNodeChild=curToNodeChild.actualize(fromEl.ownerDocument||doc)}addChild(fromEl,curToNodeChild);handleNodeAdded(curToNodeChild)}}curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling}cleanupFromEl(fromEl,curFromNodeChild,curFromNodeKey);var specialElHandler=specialElHandlers[fromEl.nodeName];if(specialElHandler){specialElHandler(fromEl,toEl)}}var morphedNode=fromNode;var morphedNodeType=morphedNode.nodeType;var toNodeType=toNode.nodeType;if(!childrenOnly){if(morphedNodeType===ELEMENT_NODE){if(toNodeType===ELEMENT_NODE){if(!compareNodeNames(fromNode,toNode)){onNodeDiscarded(fromNode);morphedNode=moveChildren(fromNode,createElementNS(toNode.nodeName,toNode.namespaceURI))}}else{morphedNode=toNode}}else if(morphedNodeType===TEXT_NODE||morphedNodeType===COMMENT_NODE){if(toNodeType===morphedNodeType){if(morphedNode.nodeValue!==toNode.nodeValue){morphedNode.nodeValue=toNode.nodeValue}return morphedNode}else{morphedNode=toNode}}}if(morphedNode===toNode){onNodeDiscarded(fromNode)}else{if(toNode.isSameNode&&toNode.isSameNode(morphedNode)){return}morphEl(morphedNode,toNode,childrenOnly);if(keyedRemovalList){for(var i=0,len=keyedRemovalList.length;i<len;i++){var elToRemove=fromNodesLookup[keyedRemovalList[i]];if(elToRemove){removeNode(elToRemove,elToRemove.parentNode,false)}}}}if(!childrenOnly&&morphedNode!==fromNode&&fromNode.parentNode){if(morphedNode.actualize){morphedNode=morphedNode.actualize(fromNode.ownerDocument||doc)}fromNode.parentNode.replaceChild(morphedNode,fromNode)}return morphedNode}}var morphdom=morphdomFactory(morphAttrs);return morphdom});</script>
+<script>
+class DCLogic { constructor(){ this.state = {}; } setState(o){ Object.assign(this.state, typeof o === 'function' ? o(this.state) : o); scheduleRender(); } }
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { step: 0, offline: false, showList: false, fixMode: false, typeMode: false, typed1: '', typed2: '', typing: 0, typedDone: false, flagPick: false, linesView: false, postedList: false, cocReading: false, adhocFlag: null, extraFlags: [], scanNext: false, focused: false, scanValue: '', scanned: false, scanMsg: '', scanKind: 'idle' };
+  }
+
+  codes() {
+    return [
+      ['PO4500-1234'], ['SN-0451'], ['SN-0452'], ['SN-0453'], ['SN-0454'], ['SN-1180-01'], ['CMD-MANUAL'], ['CMD-SAVE'],
+      ['LOT-7781'], ['CMD-BREAK'], ['CMD-SIGNIN'], ['PO4500-1234'], ['CMD-RESUME'], ['99-0001'], ['CMD-FLAG'], ['LOT-5520'], ['CMD-SHORT'],
+      ['SN-0388'], ['SN-0413'], ['CMD-FLAG'], ['CMD-COC'], ['CMD-OK'], ['CMD-REVIEW'], ['CONFIRM']
+    ];
+  }
+
+  go(target, value, msg, box, from, checkLine) {
+    clearTimeout(this.checkTimer);
+    this.stopTyping();
+    const v = String(value || '');
+    const shown = box === undefined ? v : box;
+    const isCommand = v.indexOf('CMD-') === 0 || v === 'CONFIRM' || v === '';
+    if (isCommand) {
+      this.setState({ step: target, showList: false, fixMode: false, typeMode: false, flagPick: false, linesView: false, postedList: false, adhocFlag: null, scanNext: false, checking: null, scanValue: shown, scanned: !!shown, scanMsg: '', scanKind: 'idle' });
+      this.arrive(target);
+      return;
+    }
+    const next = { checking: v, checkLine: checkLine || ('Scanned ' + v), showList: false, fixMode: false, typeMode: false, flagPick: false, linesView: false, postedList: false, adhocFlag: null, scanNext: false, scanValue: shown, scanned: !!shown, scanMsg: '', scanKind: 'idle' };
+    if (from !== undefined) { next.step = from; }
+    this.setState(next);
+    this.checkTimer = setTimeout(() => {
+      this.setState({ step: target, checking: null, scanMsg: '', scanKind: 'idle' });
+      this.arrive(target);
+    }, 700);
+  }
+
+  typeOut(value) {
+    clearInterval(this.typeTimer);
+    const v = String(value || '');
+    let i = 0;
+    this.setState({ typed1: '', typed2: '', typing: 1, typedDone: false });
+    this.typeTimer = setInterval(() => {
+      i += 1;
+      if (i <= v.length) { this.setState({ typed1: v.slice(0, i), typing: 1 }); return; }
+      if (i <= v.length + 4) { return; }
+      const j = i - v.length - 4;
+      if (j <= v.length) { this.setState({ typed2: v.slice(0, j), typing: 2 }); return; }
+      clearInterval(this.typeTimer);
+      this.setState({ typing: 0, typedDone: true });
+    }, 90);
+  }
+
+  stopTyping() { clearInterval(this.typeTimer); }
+
+  focusScan() {
+    setTimeout(() => { try { const el = document.getElementById('qr-scan'); if (el) { el.focus(); const n = el.value.length; el.setSelectionRange(n, n); } } catch (e) {} }, 30);
+  }
+
+  arrive(target) {
+    const st = this.script()[target - 1];
+    if (!(st && st.typeDemo)) { this.focusScan(); }
+    if (st && st.typeDemo) { this.typeOut(st.typeDemo); }
+    if (st && st.coc) {
+      clearTimeout(this.cocTimer);
+      this.setState({ cocReading: true });
+      this.cocTimer = setTimeout(() => this.setState({ cocReading: false }), 1200);
+    }
+  }
+
+  jumpTo(i) {
+    clearTimeout(this.checkTimer);
+    clearTimeout(this.cocTimer);
+    this.stopTyping();
+    const codes = this.codes();
+    const prev = i > 0 ? codes[i - 1][0] : '';
+    const prevStep = i > 0 ? this.script()[i - 1] : null;
+    const isCmd = !prev || prev.indexOf('CMD-') === 0 || prev === 'CONFIRM' || (prevStep && (prevStep.click || prevStep.checkFirst));
+    const shown = prevStep && prevStep.box !== undefined ? prevStep.box : (isCmd ? '' : prev);
+    this.setState({ step: i, showList: false, fixMode: false, typeMode: false, flagPick: false, linesView: false, postedList: false, adhocFlag: null, scanNext: false, checking: null, cocReading: false, scanValue: shown, scanned: !!shown, scanMsg: '', scanKind: 'idle' });
+    this.arrive(i);
+  }
+
+  doStep(i) {
+    const steps = this.script();
+    if (i >= steps.length) { return; }
+    const st = steps[i];
+    const code = this.codes()[i][0];
+    if (st.flagPick && !this.state.flagPick && this.state.step === i) { this.setState({ flagPick: true, fixMode: false, typeMode: false }); return; }
+    if (st.click) { this.go(i + 1, '', '', '', i); return; }
+    if (st.checkFirst) { this.go(i + 1, 'UNREADABLE', '', '', i, st.checkFirst); return; }
+    const cmd = code.indexOf('CMD-') === 0 || code === 'CONFIRM';
+    const box = st.box !== undefined ? st.box : (cmd ? '' : code);
+    this.go(i + 1, code, '', box, i);
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this.checkTimer);
+    clearTimeout(this.cocTimer);
+    clearInterval(this.typeTimer);
+  }
+
+  handleScan(raw) {
+    const v = String(raw || '').trim().toUpperCase();
+    if (!v) { return; }
+    const codes = this.codes();
+    const step = this.state.step;
+    if (this.state.showList && step > 0 && v === 'PO4500-1234') {
+      this.setState({ showList: false, scanValue: v, scanned: true, scanMsg: '', scanKind: 'idle' });
+      return;
+    }
+    if (step < codes.length && codes[step].indexOf(v) !== -1) {
+      this.go(step + 1, v, 'Scanned ' + v);
+      return;
+    }
+    for (let j = step + 1; j < codes.length; j++) {
+      if (codes[j].indexOf(v) !== -1) {
+        this.go(j + 1, v, 'Scanned ' + v + ' · jumped ahead');
+        return;
+      }
+    }
+    for (let k = 0; k < step; k++) {
+      if (codes[k].indexOf(v) !== -1) {
+        this.setState({ scanValue: v, scanned: true, scanMsg: v + ' was already scanned', scanKind: 'warn' });
+        return;
+      }
+    }
+    this.setState({ scanValue: v, scanned: true, scanMsg: 'Barcode not recognized: ' + v, scanKind: 'bad' });
+  }
+
+  lines() {
+    return [
+      { no: 1, name: 'Actuator bracket', pn: '12-3456', qty: 4, track: 'Serial' },
+      { no: 2, name: 'Wire harness', pn: '22-1180', qty: 2, track: 'Serial' },
+      { no: 3, name: 'Fastener kit', pn: '31-0099', qty: 10, track: 'Lot' },
+      { no: 4, name: 'Seal ring', pn: '44-2200', qty: 6, track: 'Lot' },
+      { no: 5, name: 'Sensor module', pn: '55-0412', qty: 1, track: 'Serial' }
+    ];
+  }
+
+  script() {
+    const match = (s, line, value, detail) => { s.result = { kind: 'match', line: line, value: value, detail: detail }; };
+    return [
+      { label: 'Open the first delivery', sub: 'Click it, or scan the packing slip', click: true, run: (s) => { s.screen = 'receiving'; s.result = { kind: 'idle' }; } },
+      { label: 'Scan SN-0451', sub: 'Line 1', run: (s) => { s.got[0] = 1; match(s, 1, 'SN-0451', 'Actuator bracket · Part 12-3456'); } },
+      { label: 'Scan SN-0452', sub: 'Line 1', run: (s) => { s.got[0] = 2; match(s, 1, 'SN-0452', 'Actuator bracket · Part 12-3456'); } },
+      { label: 'Scan SN-0453', sub: 'Line 1', run: (s) => { s.got[0] = 3; match(s, 1, 'SN-0453', 'Actuator bracket · Part 12-3456'); } },
+      { label: 'Scan SN-0454', sub: 'Line 1', run: (s) => { s.got[0] = 4; match(s, 1, 'SN-0454', 'Actuator bracket · Part 12-3456'); } },
+      { label: 'Scan SN-1180-01', sub: 'Line 2', run: (s) => { s.got[1] = 1; match(s, 2, 'SN-1180-01', 'Wire harness · Part 22-1180'); } },
+      { label: 'Label won’t scan', sub: '2nd harness · type the serial twice', checkFirst: 'Trying to read a damaged label', typeDemo: 'SN-1180-02', run: (s) => { s.result = { kind: 'manual', line: 2 }; } },
+      { label: 'Save and check', sub: 'App re-checks the typed serial', box: 'SN-1180-02', run: (s) => { s.got[1] = 2; match(s, 2, 'SN-1180-02', 'Typed, then re-checked against the PO'); } },
+      { label: 'Scan LOT-7781', sub: 'Line 3 · 10 pieces', run: (s) => { s.got[2] = 10; match(s, 3, 'LOT-7781', 'Fastener kit · 10 pieces on one lot'); } },
+      { label: 'Tech goes on break', sub: 'Signs out mid-delivery', run: (s) => { s.screen = 'break'; s.result = { kind: 'idle' }; } },
+      { label: 'Tech signs back in', sub: 'Lands on the deliveries list', run: (s) => { s.screen = 'receiving'; s.home = true; } },
+      { label: 'Open the delivery again', sub: 'Click Resume, or scan the slip', click: true, run: (s) => { s.home = false; s.result = { kind: 'resume' }; } },
+      { label: 'Resume at line 4', sub: 'Picks up where they left off', run: (s) => { s.result = { kind: 'idle' }; } },
+      { label: 'Scan a stray part', sub: 'Part 99-0001', run: (s) => { s.result = { kind: 'mismatch', title: 'Not a match', sub: 'Not on this PO', value: '99-0001', detail: 'Part 99-0001 isn’t on PO 4500-1234.' }; } },
+      { label: 'Flag for lead', sub: 'Set it aside, keep going', kind: 'flag', undo: 'Undo flag', run: (s) => { s.flags += 1; s.extras.push({ label: 'Stray part', meta: 'Part 99-0001 · not on this PO', review: 'Stray part 99-0001 · not on this PO' }); s.result = { kind: 'flag', sub: 'Not on this PO', value: 'Part 99-0001', detail: 'Note: arrived in the Northstar box, no PO line.', reason: 'po' }; } },
+      { label: 'Scan LOT-5520', sub: 'Seal rings · count them', run: (s) => { s.result = { kind: 'qty', line: 4 }; } },
+      { label: 'Record 5 of 6 as short', sub: 'Reason: short shipped', undo: 'Undo short count', run: (s) => { s.got[3] = 5; s.short[3] = true; match(s, 4, 'LOT-5520', 'Seal ring · 5 of 6 received, recorded as short'); } },
+      { label: 'Scan SN-0388', sub: 'Sensor · already received', run: (s) => { s.result = { kind: 'mismatch', title: 'Not a match', sub: 'Serial already received', value: 'SN-0388', detail: 'Received on PO 4500-1188 on Oct 14. Wrong label scanned?', line: 5 }; } },
+      { label: 'Scan the right label', sub: 'SN-0413 · matches line 5', kind: 'fix', run: (s) => { s.got[4] = 1; match(s, 5, 'SN-0413', 'Sensor module · Part 55-0412'); } },
+      { label: 'Flag: label doesn’t match part', sub: 'Serial marked on the sensor says SN-0431', flagPick: true, undo: 'Undo flag', run: (s) => { s.flags += 1; s.flagged[4] = true; s.result = { kind: 'flag', line: 5, sub: 'Label doesn’t match part', value: 'Label SN-0413 · sensor SN-0431', detail: 'QA or the lead approves any corrected serial.', reason: 'label', photo: true }; } },
+      { label: 'Attach COCs', sub: '2 needed · AI reads them', coc: true, run: (s) => { s.screen = 'coc'; } },
+      { label: 'Confirm seal ring COC is line 4', sub: 'The one AI wasn’t sure about', run: (s) => { s.cocDone = true; } },
+      { label: 'Go to review', sub: 'Check the summary', run: (s) => { s.screen = 'review'; } },
+      { label: 'Confirm receipt', sub: 'Posts to ERP · or scan CONFIRM', run: (s) => { s.screen = 'posted'; } }
+    ];
+  }
+
+  simulate(upTo) {
+    const s = { screen: 'start', got: [0, 0, 0, 0, 0], short: [false, false, false, false, false], flagged: [false, false, false, false, false], flags: 0, result: { kind: 'idle' }, cocDone: false, home: false, extras: [] };
+    const steps = this.script();
+    for (let i = 0; i < upTo && i < steps.length; i++) { steps[i].run(s); }
+    return s;
+  }
+
+  renderVals() {
+    const steps = this.script();
+    const step = Math.min(this.state.step, steps.length);
+    const s = this.simulate(step);
+    const lines = this.lines();
+    const res = (this.state.adhocFlag && !this.state.checking) ? this.state.adhocFlag : (s.result || { kind: 'idle' });
+    let handled = 0;
+    let items = 0;
+    const pill = (bg, fg, border) => 'flex: 0 0 auto; padding: 6px 12px; border-radius: 999px; font-size: 14px; font-weight: 700; background: ' + bg + '; color: ' + fg + '; border: 1px solid ' + border;
+    const shownLines = lines.map((l, i) => {
+      const got = s.got[i];
+      items += got;
+      const done = got >= l.qty || s.short[i];
+      if (done) { handled += 1; }
+      let status = 'Waiting';
+      let pillStyle = pill('#F4F0E8', '#45423C', '#DCD5C8');
+      if (s.flagged[i]) { status = 'On hold'; pillStyle = pill('#F4EAD2', '#6B430E', '#C9A25E'); }
+      else if (s.short[i]) { status = got + ' of ' + l.qty + ' · short'; pillStyle = pill('#F4EAD2', '#6B430E', '#C9A25E'); }
+      else if (got >= l.qty) { status = '✓ Done'; pillStyle = pill('#E5EEE2', '#234F2F', '#A9C7A8'); }
+      else if (got > 0) { status = got + ' of ' + l.qty; pillStyle = pill('#EFE4CF', '#5C4320', '#CDB68C'); }
+      const current = res.line === l.no;
+      const rowStyle = 'display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 18px; border-radius: 4px; ' + (current ? 'border: 2px solid #7A5A2B; background: #F6EFE2' : 'border: 1px solid #E7E1D6; background: #FFFDF8');
+      return { label: l.no + '. ' + l.name, meta: 'Part ' + l.pn + ' · ' + l.track + ' · qty ' + l.qty, status: status, pillStyle: pillStyle, rowStyle: rowStyle };
+    });
+    const nextLine = shownLines.find((l, i) => !(s.got[i] >= lines[i].qty || s.short[i]));
+    (this.state.extraFlags || []).filter((f) => f.step <= step).forEach((f) => { s.flags += 1; s.extras.push(f); });
+    const reviewFlags = [];
+    if (s.flagged[4]) { reviewFlags.push({ text: 'Sensor module SN-0413 · label doesn\u2019t match part' }); }
+    s.extras.forEach((x) => { reviewFlags.push({ text: x.review || (x.label + ' · ' + x.meta) }); });
+    s.extras.forEach((x) => {
+      shownLines.push({ label: x.label, meta: x.meta, status: 'Flagged · on hold', pillStyle: pill('#F4EAD2', '#6B430E', '#C9A25E'), rowStyle: 'display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 18px; border-radius: 4px; border: 1px dashed #C9A25E; background: #FFFDF8' });
+    });
+    const flagText = s.flags > 0 ? ' · ' + s.flags + ' flagged' : '';
+    const pct = Math.round((handled / lines.length) * 100);
+    const chip = (on) => on ? 'padding: 10px 16px; border-radius: 999px; border: 2px solid #9A6414; background: #F4EAD2; color: #6B430E; font-size: 16px; font-weight: 700' : 'padding: 10px 16px; border-radius: 999px; border: 1px solid #A69E8F; font-size: 16px; color: #45423C';
+    const sub = res.kind === 'match' && res.line ? 'Line ' + res.line + ' · ' + shownLines[res.line - 1].status.replace('✓ ', '') : (res.sub || '');
+    const r = {
+      isIdle: res.kind === 'idle',
+      isMatch: res.kind === 'match',
+      isMismatch: res.kind === 'mismatch',
+      isManual: res.kind === 'manual',
+      isFlag: res.kind === 'flag',
+      isQty: res.kind === 'qty',
+      isResume: res.kind === 'resume',
+      title: res.title || '',
+      sub: sub,
+      value: res.value || '',
+      detail: res.detail || '',
+      photo: !!res.photo,
+      chipNotOnPo: chip(res.reason === 'po'),
+      chipLabel: chip(res.reason === 'label'),
+      chipDamaged: chip(false)
+    };
+    r.isChecking = false;
+    r.checkLine = '';
+    r.isFixMode = false;
+    r.isTypeMode = false;
+    r.fixHint = '';
+    r.canFlag = false;
+    if (this.state.fixMode && r.isMismatch && !this.state.checking) {
+      r.isMismatch = false;
+      r.isFixMode = true;
+      r.fixHint = res.line === 5 ? 'Look for another label on the sensor module and scan it. The app re-checks it against the PO.' : 'This part isn’t on the PO, so there’s no right label to scan. If it doesn’t belong to this delivery, flag it for the lead.';
+      r.canFlag = true;
+      if (this.state.typeMode) { r.isFixMode = false; r.isTypeMode = true; }
+    }
+    r.isFlagPick = false;
+    r.pickValue = res.value || '';
+    if (this.state.flagPick && res.kind === 'match' && !this.state.checking) { r.isMatch = false; r.isFlagPick = true; }
+    const lastStep = step > 0 ? steps[step - 1] : null;
+    r.canUndo = false;
+    r.undoText = '';
+    if (this.state.adhocFlag && res.kind === 'flag') { r.canUndo = true; r.undoText = 'Undo flag'; }
+    else if (lastStep && lastStep.undo && !this.state.flagPick && !this.state.scanNext) { r.canUndo = true; r.undoText = lastStep.undo; }
+    if (this.state.scanNext && !this.state.checking && s.screen === 'receiving' && !s.home) {
+      Object.keys(r).forEach((k) => { if (k.indexOf('is') === 0) { r[k] = false; } });
+      r.isIdle = true;
+    }
+    if (this.state.checking && s.screen === 'receiving' && !s.home) {
+      Object.keys(r).forEach((k) => { if (k.indexOf('is') === 0) { r[k] = false; } });
+      r.isChecking = true;
+      r.checkLine = this.state.checkLine || ('Scanned ' + this.state.checking);
+    }
+    const allDone = !this.state.checking && s.screen === 'receiving' && !s.home && step < steps.length && !!steps[step].coc;
+    const linesView = !!this.state.linesView && s.screen === 'review';
+    const stepItems = steps.map((st, i) => {
+      const isDone = i < step;
+      const isNext = i === step;
+      const base = 'width: 100%; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 8px 10px; border-radius: 4px; cursor: pointer; color: #1C1B19; ';
+      const look = isNext ? 'border: 2px solid #7A5A2B; background: #F6EFE2' : (isDone ? 'border: 1px solid #E7E1D6; background: #FAF7F1; opacity: 0.75' : 'border: 1px solid #E7E1D6; background: #FFFDF8');
+      return { label: (isDone ? '✓ ' : (i + 1) + '. ') + st.label, sub: st.sub, code: this.codes()[i].join(' / '), style: base + look, jump: () => this.jumpTo(i) };
+    });
+    const typeStyle = (n) => 'font-family: \'IBM Plex Mono\', monospace; font-size: 22px; padding: 12px; border-radius: 4px; color: #1C1B19; background: #FFFDF8; border: 2px solid ' + (this.state.typing === n ? '#7A5A2B; box-shadow: 0 0 0 3px #EFE4CF' : '#A69E8F');
+    const msgColors = { ok: '#234F2F', warn: '#6B430E', bad: '#6E1F1F', idle: '#45423C' };
+    const scanKind = this.state.scanKind || 'idle';
+    const list = this.state.showList && s.screen !== 'start' && s.screen !== 'posted';
+    return {
+      isStart: s.screen === 'start' || list || s.home || (s.screen === 'posted' && this.state.postedList),
+      isReceiving: !list && !s.home && (s.screen === 'receiving' || linesView),
+      isBreak: s.screen === 'break',
+      isCoc: !list && s.screen === 'coc',
+      isReview: !list && !linesView && s.screen === 'review',
+      isPosted: s.screen === 'posted' && !this.state.postedList,
+      linesView: linesView && !list,
+      reviewFlags: reviewFlags,
+      flagCountText: s.flags + ' · on hold',
+      postedSummary: '22 items received · 1 short · ' + s.flags + (s.flags === 1 ? ' flag' : ' flags') + ' sent to the receiving lead',
+      deliverySub: s.screen === 'posted' ? 'Posted · RCV-88213 · 22 items · 1 short · ' + s.flags + (s.flags === 1 ? ' flag' : ' flags') + ' with the lead' : step === 0 ? '23 items on 5 lines · 2 COCs needed' : 'In progress · ' + handled + ' of ' + lines.length + ' lines' + flagText + ' · saved',
+      deliveryAction: s.screen === 'posted' ? '✓ Posted' : step === 0 ? 'Arrived 10:30 · Start' : 'Resume',
+      openDelivery: () => { if (s.screen === 'posted') { this.setState({ postedList: false }); return; } if (this.state.step === 0 || s.home) { this.doStep(this.state.step); } else { this.setState({ showList: false }); } },
+      tryAgain: () => { const val = res.value || ''; clearTimeout(this.checkTimer); this.setState({ checking: val, checkLine: 'Scanned ' + val, scanValue: val, scanned: true, scanMsg: '', scanKind: 'idle' }); this.checkTimer = setTimeout(() => this.setState({ checking: null, fixMode: true, scanMsg: 'Same result: ' + (res.sub || 'not a match'), scanKind: 'warn' }), 700); },
+      typed1: this.state.typed1,
+      typed2: this.state.typed2,
+      onTyped1: (e) => { this.stopTyping(); this.setState({ typed1: e.target.value, typing: 0 }); },
+      onTyped2: (e) => { this.stopTyping(); this.setState({ typed2: e.target.value, typing: 0 }); },
+      typeStyle1: typeStyle(1),
+      typeStyle2: typeStyle(2),
+      matchNote: this.state.typedDone ? '✓ Both entries match' : 'Typing…',
+      matchNoteStyle: 'font-size: 17px; font-weight: 600; min-height: 24px; color: ' + (this.state.typedDone ? '#234F2F' : '#6B6458'),
+      cancelType: () => { this.stopTyping(); this.setState({ typeMode: false, typing: 0, typed1: '', typed2: '', scanMsg: '', scanKind: 'idle' }); },
+      saveTyped: () => { this.stopTyping(); const a = (this.state.typed1 || '').trim().toUpperCase(); const b = (this.state.typed2 || '').trim().toUpperCase(); if (!a || !b) { this.setState({ scanMsg: 'Type the serial in both boxes', scanKind: 'warn' }); return; } if (a !== b) { this.setState({ scanMsg: 'The two entries don’t match. Check the label and try again', scanKind: 'bad' }); return; } this.setState({ typeMode: false, fixMode: false, typed1: '', typed2: '' }); this.handleScan(a); },
+      undo: () => {
+        if (this.state.adhocFlag) { const v = this.state.adhocFlag.value; this.setState({ adhocFlag: null, extraFlags: (this.state.extraFlags || []).filter((f) => f.value !== v), scanMsg: 'Flag undone', scanKind: 'idle' }); return; }
+        if (lastStep && lastStep.undo) { this.jumpTo(step - 1); this.setState({ scanMsg: lastStep.undo === 'Undo flag' ? 'Flag undone' : 'Short count undone', scanKind: 'idle' }); }
+      },
+      scanNext: () => { this.stopTyping(); this.setState({ scanNext: true, fixMode: false, typeMode: false, flagPick: false, adhocFlag: null, scanValue: '', scanned: false, scanMsg: '', scanKind: 'idle' }); this.focusScan(); },
+      scanWrapStyle: 'display: flex; align-items: stretch; border: 2px solid #7A5A2B; border-radius: 4px; background: #FFFDF8; overflow: hidden' + (this.state.focused ? '; box-shadow: 0 0 0 4px #EFE4CF' : ''),
+      showDeliveries: () => this.setState({ showList: true, scanMsg: '', scanKind: 'idle' }),
+      showLines: () => this.setState({ linesView: true }),
+      backToReview: () => this.setState({ linesView: false }),
+      showPostedList: () => this.setState({ postedList: true }),
+      openFlagPick: () => this.setState({ flagPick: true, scanMsg: '', scanKind: 'idle' }),
+      cancelFlagPick: () => this.setState({ flagPick: false, scanMsg: '', scanKind: 'idle' }),
+      pickLabel: () => { if (step < steps.length && steps[step].flagPick) { this.go(step + 1, 'CMD-FLAG', '', ''); } else { this.setState({ scanMsg: 'Demo: flagging is scripted on the sensor module (step 20)', scanKind: 'warn' }); } },
+      pickOther: () => this.setState({ scanMsg: !(step < steps.length && steps[step].flagPick) ? 'Demo: flagging is scripted on the sensor module (step 20)' : 'For this demo, pick "Label doesn\u2019t match part"', scanKind: 'warn' }),
+      cocReading: !!this.state.cocReading,
+      cocRead: !this.state.cocReading,
+      offline: this.state.offline,
+      offlineLabel: this.state.offline ? 'Wi-Fi drop: on (click to restore)' : 'Simulate a Wi-Fi drop',
+      scannerStatus: this.state.offline ? 'Scanner connected · offline' : 'Scanner connected',
+      lines: shownLines,
+      progressText: handled + ' of ' + lines.length + ' lines' + flagText,
+      progressStyle: 'height: 100%; width: ' + pct + '%; background: #2F6B3F',
+      itemsText: items + ' of 23 items received',
+      idleHint: nextLine ? 'Next up: ' + nextLine.label : 'Every line is handled',
+      r: r,
+      allDone: allDone,
+      cocPending: !s.cocDone,
+      cocDone: s.cocDone,
+      cocBStyle: 'border: 2px solid ' + (s.cocDone ? '#2F6B3F' : '#9A6414') + '; border-radius: 6px; padding: 20px; display: flex; flex-direction: column; gap: 10px',
+      steps: stepItems,
+      nextLabel: step >= steps.length ? 'Demo complete' : 'Next: ' + steps[step].label,
+      next: () => { if (!this.state.checking) { this.doStep(this.state.step); } },
+      fixClick: () => this.setState({ fixMode: true, scanMsg: '', scanKind: 'idle' }),
+      flagClick: () => { if (step < steps.length && steps[step].kind === 'flag') { this.go(step + 1, 'CMD-FLAG', '', ''); return; } const ex = (this.state.extraFlags || []).filter((f) => f.value !== res.value && f.step <= step); ex.push({ step: step, value: res.value, label: res.value, meta: (res.sub || 'Not a match') + (res.line ? ' · line ' + res.line : ''), review: res.value + ' · ' + (res.sub || 'not a match').toLowerCase() }); this.setState({ extraFlags: ex, fixMode: false, typeMode: false, scanMsg: '', scanKind: 'idle', adhocFlag: { kind: 'flag', line: res.line, sub: res.sub, value: res.value, detail: 'The lead will check it. Line ' + (res.line || '') + ' still needs its part, so find the right label and scan it.', reason: 'other' } }); },
+      cancelFix: () => this.setState({ fixMode: false }),      openManual: () => { this.setState({ typeMode: true, scanMsg: '', scanKind: 'idle' }); this.typeOut(res.line === 5 ? 'SN-0413' : (res.value || '')); },
+      hasScanValue: !!this.state.scanValue,
+      noScanValue: !this.state.scanValue,
+      clearScan: () => this.setState({ scanValue: '', scanned: false, scanMsg: '', scanKind: 'idle' }),
+      onScanFocus: () => this.setState({ focused: true }),
+      onScanBlur: () => this.setState({ focused: false }),
+      readyText: this.state.focused ? 'Ready to scan' : 'Not ready · click the box',
+      readyDotStyle: 'width: 10px; height: 10px; border-radius: 50%; background: ' + (this.state.focused ? '#2F6B3F' : '#9A6414'),
+      reset: () => { clearTimeout(this.checkTimer); clearTimeout(this.cocTimer); this.stopTyping(); this.setState({ flagPick: false, linesView: false, postedList: false, cocReading: false, adhocFlag: null, extraFlags: [], scanNext: false, step: 0, showList: false, checking: null, scanValue: '', scanned: false, scanMsg: '', scanKind: 'idle' }); },
+      scanValue: this.state.scanValue,
+      scanMsg: this.state.scanMsg,
+      scanMsgStyle: 'position: absolute; left: 0; right: 0; top: calc(100% + 2px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 20px; font-size: 15px; font-weight: 600; color: ' + msgColors[scanKind],
+      scanInputStyle: 'flex: 1 1 auto; min-width: 0; border: none; outline-offset: -3px; font-family: \'IBM Plex Mono\', monospace; font-size: 18px; padding: 12px 14px; background: transparent; color: ' + (this.state.scanned ? '#5E5A52' : '#1C1B19'),
+      onScanChange: (e) => this.setState({ scanValue: e.target.value, scanned: false }),
+      onScanKey: (e) => { if (e.key === 'Enter') { e.preventDefault(); if (!this.state.scanned) { this.handleScan(e.target.value); } return; } if (this.state.scanned && e.key.length === 1) { e.target.select(); this.setState({ scanned: false }); } },
+      submitScan: () => { if (!this.state.scanned) { this.handleScan(this.state.scanValue); } },
+      toggleOffline: () => this.setState({ offline: !this.state.offline })
+    };
+  }
+}
+
+const comp = new Component();
+function ev(expr, scope) { try { return new Function('scope', 'with(scope){return (' + expr + ')}')(scope); } catch (e) { return ''; } }
+const HOLE = /\{\{([\s\S]*?)\}\}/g;
+function sub(str, scope) { const m = str.match(/^\s*\{\{([\s\S]*?)\}\}\s*$/); if (m) return ev(m[1], scope); return str.replace(HOLE, (_, e) => { const v = ev(e, scope); return v == null ? '' : v; }); }
+const EVENTS = { onclick: 'click', onchange: 'input', onkeydown: 'keydown', onfocus: 'focusin', onblur: 'focusout' };
+let firstRender = true;
+function proc(node, scope, out, svg) {
+  if (node.nodeType === 3) { out.appendChild(document.createTextNode(String(sub(node.nodeValue, scope)))); return; }
+  if (node.nodeType !== 1) return;
+  const tag = node.tagName.toLowerCase();
+  if (tag === 'sc-if') { if (sub(node.getAttribute('value'), scope)) for (const c of node.childNodes) proc(c, scope, out, svg); return; }
+  if (tag === 'sc-for') { const list = sub(node.getAttribute('list'), scope) || []; const as = node.getAttribute('as'); for (const item of list) { const s2 = Object.assign(Object.create(scope), { [as]: item }); for (const c of node.childNodes) proc(c, s2, out, svg); } return; }
+  const inSvg = svg || tag === 'svg';
+  const el = inSvg ? document.createElementNS('http://www.w3.org/2000/svg', node.tagName) : document.createElement(tag);
+  let autoFocus = false, val = null;
+  for (const a of node.attributes) {
+    const n = a.name.toLowerCase();
+    if (n.startsWith('hint-')) continue;
+    if (EVENTS[n]) { const fn = sub(a.value, scope); if (typeof fn === 'function') { (el.__h = el.__h || {})[EVENTS[n]] = fn; } continue; }
+    const v = sub(a.value, scope);
+    if (n === 'autofocus') { autoFocus = !!v; continue; }
+    if (n === 'value') { val = v; el.setAttribute('value', v == null ? '' : v); continue; }
+    if (n === 'autocomplete') { el.setAttribute('autocomplete', v); continue; }
+    if (v === false || v == null) continue;
+    el.setAttribute(a.name, v === true ? '' : v);
+  }
+  for (const c of node.childNodes) proc(c, scope, el, inSvg);
+  if (val != null && 'value' in el) el.value = val;
+  if (autoFocus && firstRender) setTimeout(() => el.focus(), 0);
+  out.appendChild(el);
+}
+let pending = false; let rendering = false;
+function scheduleRender() { if (pending) return; pending = true; Promise.resolve().then(() => { pending = false; render(); }); }
+function render() {
+  rendering = true;
+  const a = document.activeElement; const fid = a && a.id; let s0 = null, s1 = null;
+  try { if (fid && a.selectionStart != null) { s0 = a.selectionStart; s1 = a.selectionEnd; } } catch (e) {}
+  const root = document.getElementById('root'); const next = document.createElement('div'); next.id = 'root';
+  const vals = comp.renderVals(); const t = document.getElementById('tpl').content;
+  for (const c of t.childNodes) proc(c, vals, next);
+  morphdom(root, next, { onBeforeElUpdated: (from, to) => { from.__h = to.__h; if (to.tagName === 'INPUT' && from.value !== to.value) { from.value = to.value; } return true; } });
+  const el = fid ? document.getElementById(fid) : null;
+  if (el && document.activeElement !== el) { el.focus({ preventScroll: true }); try { if (s0 != null) el.setSelectionRange(s0, s1); } catch (e) {} }
+  firstRender = false;
+  rendering = false;
+}
+['click', 'input', 'keydown', 'focusin', 'focusout'].forEach((type) => document.addEventListener(type, (e) => {
+  if (rendering) return;
+  for (let n = e.target; n && n !== document; n = n.parentNode) { if (n.__h && n.__h[type]) { n.__h[type](e); return; } }
+}));
+render();
+</script>
+</body></html>
